@@ -8,7 +8,8 @@ This document walks you through every step of the local main k8s env for sample 
 
 ```
 devops-assmt/
-├── ansible.cfg
+├── group_vars/
+│   └── all.yml 
 ├── inventories/
 │   ├── dev/
 │   │   ├── hosts.yml
@@ -30,6 +31,8 @@ devops-assmt/
 │   │   └── tasks/main.yml
 │   ├── traefik/
 │   │   └── tasks/main.yml
+├── .gitignore
+├── ansible.cfg
 ├── deploy.yml
 └── README.md
 ```
@@ -132,6 +135,7 @@ multipass list
 - `ansible.cfg` is used for Ansible default configuration while running playbook
 - `invenories/<ENV>/group_vars/all.yml` contains variables to be used in ansible playbook
 - `invenories/<ENV>/hosts.yml` contains workload resource which should be confitured by Ansible
+- `group_vars/all.yml` contains global ansible variables 
 
 ### 5.1 SSH key setup for Multipass
 
@@ -144,7 +148,7 @@ multipass shell edge-server
 # open ~/.ssh/authorized_keys and paste ~/.ssh/id_rsa.pub, save and exit
 
 # Verify
-ssh ubuntu@<EDGE-SERVER-IP> "echo connected"
+ssh ubuntu@edge-server.local "echo connected"
 ```
 
 ---
@@ -182,8 +186,8 @@ ansible-galaxy collection install kubernetes.core community.general
 ansible-playbook deploy.yml -i inventories/dev -e @releases/release-1.0.0.yml
 
 # Confirm Podinfo version on main cluster
-kubectl get po -n podinfo
-kubectl exec -n podinfo deploy/podinfo -- wget -qO- http://localhost:9898/version
+kubectl get po -n podinfo-{ENV}
+kubectl exec -n podinfo-{ENV} deploy/podinfo -- wget -qO- http://localhost:9898/version
 
 # Confirm Podinfo on edge
 curl http://<EDGE-SERVER-IP>:30099/version
@@ -246,8 +250,8 @@ The playbook itself is unchanged. Only the inventory and manifest differ. This d
 ansible-playbook deploy.yml -i inventories/dev -e @releases/release-0.9.0.yml
 
 # Verify the new version is running
-kubectl rollout status deployment/podinfo -n podinfo
-kubectl exec -n podinfo deploy/podinfo -- wget -qO- http://localhost:9898/version
+kubectl rollout status deployment/podinfo -n podinfo-{ENV}
+kubectl exec -n podinfo-{ENV} deploy/podinfo -- wget -qO- http://localhost:9898/version
 # Should now show 6.12.0 instead of 6.11.2
 ...
 {
@@ -268,13 +272,13 @@ kubectl exec -n podinfo deploy/podinfo -- wget -qO- http://localhost:9898/versio
 # --- Main Cluster ---
 
 # Traefik logs
-kubectl logs -n traefik deploy/traefik -f
+kubectl logs -n traefik-{ENV} deploy/traefik -f
 
 # Keycloak logs
-kubectl logs -n keycloak deploy/keycloak -f
+kubectl logs -n keycloak-{ENV} deploy/keycloak -f
 
 # Podinfo logs
-kubectl logs -n podinfo deploy/podinfo -f
+kubectl logs -n podinfo-{ENV} deploy/podinfo -f
 
 # All pods across namespaces at once (requires stern)
 brew install stern
@@ -282,7 +286,7 @@ stern ".*" --all-namespaces
 
 # --- Edge Server ---
 ssh ubuntu@<EDGE-SERVER-IP> \
-  "microk8s kubectl logs deploy/podinfo-edge -f"
+  "microk8s kubectl logs deploy/podinfo-edge -n {ENV} -f"
 ```
 
 > **Reasoning:** For this sample exercise, kubectl logs is sufficient — it's built-in, requires no extra tooling, and gives real-time output. In production I would add a Loki + Grafana stack (lightweight) or ship logs to a managed service like Datadog, NewRelic or AWS CloudWatch, since kubectl logs are lost when pods are replaced.
@@ -299,13 +303,6 @@ kubectl get svc -A
 #   traefik   LoadBalancer/NodePort  80, 443
 #   keycloak  ClusterIP              8080    (NOT directly reachable from outside)
 #   podinfo   ClusterIP              9898    (NOT directly reachable from outside)
-...
-default       kubernetes   ClusterIP      10.56.0.1       <none>        443/TCP                      178m
-keycloak      keycloak     ClusterIP      10.56.192.122   <none>        8080/TCP                     70m
-kube-system   kube-dns     ClusterIP      10.56.0.10      <none>        53/UDP,53/TCP,9153/TCP       178m
-podinfo       podinfo      ClusterIP      10.56.120.99    <none>        9898/TCP                     70m
-traefik       traefik      LoadBalancer   10.56.161.212   172.16.0.4    80:30080/TCP,443:30443/TCP   70m
-
 
 # Confirm Podinfo is NOT directly reachable (should time out or refuse)
 curl --max-time 3 http://localhost:9898
@@ -333,7 +330,7 @@ kubectl get po -A
 kubectl get svc -A | grep -v ClusterIP
 
 # 3. Podinfo version matches manifest
-kubectl exec -n podinfo deploy/podinfo -- wget -qO- http://localhost:9898/version | python3 -m json.tool
+kubectl exec -n podinfo-{ENV} deploy/podinfo -- wget -qO- http://localhost:9898/version | python3 -m json.tool
 
 # 4. Edge is reachable from host (proxy for main cluster connectivity)
 curl http://<EDGE-SERVER-IP>:30099/version
@@ -348,8 +345,8 @@ curl -v http://podinfo.localhost/version
 
 ```bash
 # Uninstall all Helm releases from the main cluster
-helm uninstall traefik -n traefik
-kubectl delete namespace keycloak podinfo
+helm uninstall traefik -n traefik-{ENV}
+kubectl delete namespace keycloak-{ENV} podinfo-{ENV}
 
 # To fully reset the Docker Desktop k8s cluster (wipe all workloads):
 # Docker Desktop → Settings → Kubernetes → Reset Kubernetes Cluster

@@ -1,0 +1,2 @@
+env: dev
+kubeconfig_context: docker-desktop

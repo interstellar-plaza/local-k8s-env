@@ -1,0 +1,4 @@
+edge_server_name: edge-server.local
+ansible_ssh_private_key_file: ~/.ssh/id_rsa
+ansible_user: ubuntu
+connection_env: local

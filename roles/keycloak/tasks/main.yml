@@ -2,7 +2,7 @@
   kubernetes.core.k8s:
     api_version: v1
     kind: Namespace
-    name: keycloak
+    name: "keycloak-{{ env }}"
     state: present
 
 - name: Deploy Keycloak
@@ -13,7 +13,7 @@
       kind: Deployment
       metadata:
         name: keycloak
-        namespace: keycloak
+        namespace: "keycloak-{{ env }}"
       spec:
         replicas: 1
         selector:
@@ -44,7 +44,7 @@
       kind: Service
       metadata:
         name: keycloak
-        namespace: keycloak
+        namespace: "keycloak-{{ env }}"
       spec:
         selector:
           app: keycloak
@@ -60,7 +60,7 @@
       kind: IngressRoute
       metadata:
         name: keycloak
-        namespace: keycloak
+        namespace: "keycloak-{{ env }}"
       spec:
         entryPoints:
           - web

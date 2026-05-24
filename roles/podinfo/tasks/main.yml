@@ -2,7 +2,7 @@
   kubernetes.core.k8s:
     api_version: v1
     kind: Namespace
-    name: podinfo
+    name: "podinfo-{{ env }}"
     state: present
 
 - name: Deploy Podinfo
@@ -13,7 +13,7 @@
       kind: Deployment
       metadata:
         name: podinfo
-        namespace: podinfo
+        namespace: "podinfo-{{ env }}"
       spec:
         replicas: 1
         selector:
@@ -38,7 +38,7 @@
       kind: Service
       metadata:
         name: podinfo
-        namespace: podinfo
+        namespace: "podinfo-{{ env }}"
       spec:
         selector:
           app: podinfo
@@ -54,10 +54,10 @@
       kind: Middleware
       metadata:
         name: keycloak-auth
-        namespace: podinfo
+        namespace: "podinfo-{{ env }}"
       spec:
         forwardAuth:
-          address: "http://keycloak.keycloak.svc.cluster.local:8080/realms/myrealm/protocol/openid-connect/userinfo"
+          address: "http://keycloak.keycloak-{{ env }}.svc.cluster.local:8080/realms/myrealm/protocol/openid-connect/userinfo"
           authResponseHeaders:
             - X-Auth-User
 
@@ -69,7 +69,7 @@
       kind: IngressRoute
       metadata:
         name: podinfo
-        namespace: podinfo
+        namespace: "podinfo-{{ env }}"
       spec:
         entryPoints:
           - web
