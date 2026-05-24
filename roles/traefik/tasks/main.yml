@@ -1,0 +1,25 @@
+- name: Add Traefik Helm repo
+  kubernetes.core.helm_repository:
+    name: traefik
+    repo_url: https://helm.traefik.io/traefik
+
+- name: Deploy Traefik via Helm
+  kubernetes.core.helm:
+    name: traefik
+    chart_ref: traefik/traefik
+    release_namespace: traefik
+    create_namespace: true
+    chart_version: "{{ components.traefik }}"
+    values:
+      service:
+        type: NodePort
+      ports:
+        web:
+          nodePort: 30080
+        websecure:
+          nodePort: 30443
+      ingressRoute:
+        dashboard:
+          enabled: false
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'HOME') }}/.kube/config"

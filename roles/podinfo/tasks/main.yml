@@ -1,0 +1,83 @@
+- name: Create podinfo namespace
+  kubernetes.core.k8s:
+    api_version: v1
+    kind: Namespace
+    name: podinfo
+    state: present
+
+- name: Deploy Podinfo
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: podinfo
+        namespace: podinfo
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: podinfo
+        template:
+          metadata:
+            labels:
+              app: podinfo
+          spec:
+            containers:
+              - name: podinfo
+                image: "stefanprodan/podinfo:{{ components.podinfo }}"
+                ports:
+                  - containerPort: 9898
+
+- name: Deploy Podinfo Service (ClusterIP — not exposed externally)
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: podinfo
+        namespace: podinfo
+      spec:
+        selector:
+          app: podinfo
+        ports:
+          - port: 9898
+            targetPort: 9898
+
+- name: Create Traefik ForwardAuth middleware (Keycloak)
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: traefik.io/v1alpha1
+      kind: Middleware
+      metadata:
+        name: keycloak-auth
+        namespace: podinfo
+      spec:
+        forwardAuth:
+          address: "http://keycloak.keycloak.svc.cluster.local:8080/realms/myrealm/protocol/openid-connect/userinfo"
+          authResponseHeaders:
+            - X-Auth-User
+
+- name: Create Podinfo IngressRoute (protected by Keycloak middleware)
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: traefik.io/v1alpha1
+      kind: IngressRoute
+      metadata:
+        name: podinfo
+        namespace: podinfo
+      spec:
+        entryPoints:
+          - web
+        routes:
+          - match: "Host(`podinfo.localhost`)"
+            kind: Rule
+            middlewares:
+              - name: keycloak-auth
+            services:
+              - name: podinfo
+                port: 9898
