@@ -7,13 +7,6 @@
     - keycloak
     - podinfo
 
-# - name: Deploy to Edge Server
-#   hosts: edge
-#   gather_facts: false
-#   roles:
-#     - podinfo_edge
-
-
 - name: Deploy to Edge Server
   hosts: edge
   gather_facts: false

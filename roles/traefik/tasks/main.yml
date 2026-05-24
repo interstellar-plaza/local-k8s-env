@@ -7,7 +7,7 @@
   kubernetes.core.helm:
     name: traefik
     chart_ref: traefik/traefik
-    release_namespace: traefik
+    release_namespace: "traefik-{{ env }}"
     create_namespace: true
     chart_version: "{{ components.traefik }}"
     values:

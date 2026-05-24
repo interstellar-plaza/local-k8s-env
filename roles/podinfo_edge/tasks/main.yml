@@ -1,3 +1,10 @@
+- name: Create podinfo namespace on Edge
+  kubernetes.core.k8s:
+    api_version: v1
+    kind: Namespace
+    name: "{{ env }}"
+    state: present
+
 - name: Deploy Podinfo on edge (MicroK8s)
   kubernetes.core.k8s:
     state: present
@@ -7,7 +14,7 @@
       kind: Deployment
       metadata:
         name: podinfo-edge
-        namespace: default
+        namespace: "{{ env }}"
       spec:
         replicas: 1
         selector:
@@ -33,7 +40,7 @@
       kind: Service
       metadata:
         name: podinfo-edge
-        namespace: default
+        namespace: "{{ env }}"
       spec:
         type: NodePort
         selector:
