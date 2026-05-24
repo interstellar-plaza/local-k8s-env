@@ -233,6 +233,7 @@ Then in the Keycloak Admin Console (admin / admin):
 ---
 
 ## 9. Staging Deployment
+For this demo we didn't deploy stage
 
 ```bash
 # Same playbook, different inventory
