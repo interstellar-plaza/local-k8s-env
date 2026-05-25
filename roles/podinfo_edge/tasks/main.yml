@@ -16,6 +16,7 @@
         name: podinfo-edge
         namespace: "{{ env }}"
       spec:
+        revisionHistoryLimit: 3 # Default to 10, 3 is for local testing only
         replicas: 1
         strategy:
           type: RollingUpdate
@@ -60,6 +61,14 @@
         kind: Deployment
         timeout: 120
   rescue:
+    - name: Check rollout history
+      kubernetes.core.k8s_info:
+        kind: ReplicaSet
+        namespace: "{{ env }}"
+        label_selectors:
+          - app=podinfo
+      register: replicasets
+
     - name: Rollout failed — rolling back Podinfo edge to previous version
       kubernetes.core.k8s_rollout:
         kubeconfig: /var/snap/microk8s/current/credentials/client.config
@@ -67,9 +76,11 @@
         namespace: "{{ env }}"
         kind: Deployment
         action: undo
+      when: replicasets.resources | length > 1
+
     - name: Fail the play after rollback
       ansible.builtin.fail:
-        msg: "Podinfo edge rollout failed. Automatic rollback to previous version triggered."
+        msg: "{{ 'Podinfo rollout failed. Automatic rollback triggered.' if replicasets.resources | length > 1 else 'Podinfo rollout failed on first deploy. No previous version to roll back to — manual intervention required.' }}"
 
 - name: Expose Podinfo on edge via NodePort
   kubernetes.core.k8s:
