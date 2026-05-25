@@ -50,6 +50,27 @@
                   periodSeconds: 10
                   failureThreshold: 3
 
+- name: Wait for Podinfo edge rollout — auto-rollback on failure
+  block:
+    - name: Wait for Podinfo edge rollout to complete
+      kubernetes.core.k8s_rollout_status:
+        kubeconfig: /var/snap/microk8s/current/credentials/client.config
+        name: podinfo-edge
+        namespace: "{{ env }}"
+        kind: Deployment
+        timeout: 120
+  rescue:
+    - name: Rollout failed — rolling back Podinfo edge to previous version
+      kubernetes.core.k8s_rollout:
+        kubeconfig: /var/snap/microk8s/current/credentials/client.config
+        name: podinfo-edge
+        namespace: "{{ env }}"
+        kind: Deployment
+        action: undo
+    - name: Fail the play after rollback
+      ansible.builtin.fail:
+        msg: "Podinfo edge rollout failed. Automatic rollback to previous version triggered."
+
 - name: Expose Podinfo on edge via NodePort
   kubernetes.core.k8s:
     state: present

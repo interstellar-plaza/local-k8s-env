@@ -7,7 +7,7 @@ This document walks you through every step of the local main k8s env for sample 
 ## 1. Project Structure
 
 ```
-devops-assmt/
+local-k8s-env/
 ├── group_vars/
 │   └── all.yml 
 ├── inventories/
@@ -164,10 +164,14 @@ We are using Traefik to deploy via Ansible role under `roles/traefik/tasks/main.
 We are roll out Keycloak via role under `roles/keycloak/tasks/main.yml`. It's used to provide authorization layer for PodInfo sample application.
 
 ### 6.3 Podinfo role (main cluster)
-We are deploying PodInfo REST API application for test purpuses accessible only inside the cluster. Ansible role is stored under `roles/podinfo/tasks/main.yml`
+We are deploying PodInfo REST API application for test purposes accessible only inside the cluster. Ansible role is stored under `roles/podinfo/tasks/main.yml`. The role includes:
+- `RollingUpdate` strategy (`maxUnavailable: 0`, `maxSurge: 1`) for zero-downtime rollouts
+- Readiness probe on `/readyz` — Kubernetes only routes traffic to the pod once it passes
+- Liveness probe on `/healthz` — Kubernetes restarts the container if it becomes unresponsive
+- Namespace, Deployment, Service, forwardAuth middleware and IngressRoute
 
 ### 6.4 Edge server Podinfo role
-Edge server is deployed via Ansible role stored in `roles/podinfo_edge/tasks/main.yml`
+Edge server is deployed via Ansible role stored in `roles/podinfo_edge/tasks/main.yml`. It includes the same deployment strategy, readiness/liveness probes, and rollout wait as the main cluster role.
 
 ### 6.5 Master Playbook
 Ansible entrypoint containing the role execution sequence is store in `deploy.yml`
@@ -177,6 +181,8 @@ Ansible role execution instruction is provided in statement 8 and 9.
 ---
 
 ## 7. Run the Initial Deployment in Dev
+
+> **Note:** Replace `{ENV}` in the commands below with the actual environment name: `dev` or `stg`.
 
 ```bash
 # Install required Ansible collections if not installed. By default they go with Ansible
@@ -263,7 +269,7 @@ kubectl exec -n podinfo-{ENV} deploy/podinfo -- wget -qO- http://localhost:9898/
 
 > **How rollback works:** Kubernetes replaces the running pod with a new one using the updated image tag from the manifest. The same playbook, a different manifest — no special rollback scripts needed. Kubernetes handles the rolling update automatically and rolls back only the changed deployment.
 
-> **Limitation:** This approach assumes the new image is available and healthy. It does not automatically revert if the new pod crashes — you'd need readiness probes and a `kubectl rollout undo` fallback for that in production.
+> **Rollout safety:** Readiness probes (`/readyz`) and a `RollingUpdate` strategy with `maxUnavailable: 0` ensure the old pod is never terminated until the new one is fully healthy. If the new pod fails to become ready within 120 seconds, Ansible automatically triggers `kubectl rollout undo` via a `block/rescue` handler and fails the play — the previous version keeps serving traffic with no manual intervention needed.
 
 ---
 
