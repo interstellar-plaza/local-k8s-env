@@ -133,9 +133,9 @@ multipass list
 
 ## 5. Ansible Configuration
 - `ansible.cfg` is used for Ansible default configuration while running playbook
-- `invenories/<ENV>/group_vars/all.yml` contains variables to be used in ansible playbook
-- `invenories/<ENV>/hosts.yml` contains workload resource which should be confitured by Ansible
-- `group_vars/all.yml` contains global ansible variables 
+- `invenories/<ENV>/group_vars/all.yml` contains env scope variables to be used in ansible playbook
+- `invenories/<ENV>/hosts.yml` contains node resource which should be confitured by Ansible
+- `group_vars/all.yml` contains project scope variables to be used in ansible playbook
 
 ### 5.1 SSH key setup for Multipass
 
