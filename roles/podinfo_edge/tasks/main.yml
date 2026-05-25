@@ -17,6 +17,11 @@
         namespace: "{{ env }}"
       spec:
         replicas: 1
+        strategy:
+          type: RollingUpdate
+          rollingUpdate:
+            maxUnavailable: 0
+            maxSurge: 1
         selector:
           matchLabels:
             app: podinfo-edge
@@ -30,6 +35,20 @@
                 image: "stefanprodan/podinfo:{{ components.podinfo }}"
                 ports:
                   - containerPort: 9898
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 9898
+                  initialDelaySeconds: 5
+                  periodSeconds: 5
+                  failureThreshold: 3
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 9898
+                  initialDelaySeconds: 10
+                  periodSeconds: 10
+                  failureThreshold: 3
 
 - name: Expose Podinfo on edge via NodePort
   kubernetes.core.k8s:
