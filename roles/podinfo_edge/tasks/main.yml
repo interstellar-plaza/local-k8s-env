@@ -64,7 +64,7 @@
     - name: Check rollout history
       kubernetes.core.k8s_info:
         kind: ReplicaSet
-        namespace: "podinfo-{{ env }}"
+        namespace: "{{ env }}"
         label_selectors:
           - app=podinfo
       register: replicasets
