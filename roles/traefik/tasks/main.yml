@@ -21,5 +21,3 @@
       ingressRoute:
         dashboard:
           enabled: false
-  environment:
-    KUBECONFIG: "{{ lookup('env', 'HOME') }}/.kube/config"

@@ -2,6 +2,15 @@
 - name: Deploy to Main K8s Cluster
   hosts: main_cluster
   gather_facts: false
+  module_defaults:
+    kubernetes.core.k8s:
+      kubeconfig: "{{ lookup('env', 'HOME') }}/.kube/config"
+      context: "{{ kubeconfig_context }}"
+    kubernetes.core.helm:
+      kubeconfig: "{{ lookup('env', 'HOME') }}/.kube/config"
+      kube_context: "{{ kubeconfig_context }}"
+    kubernetes.core.helm_repository:
+      kubeconfig: "{{ lookup('env', 'HOME') }}/.kube/config"
   roles:
     - traefik
     - keycloak
