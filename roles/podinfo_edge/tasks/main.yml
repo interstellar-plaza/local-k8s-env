@@ -66,7 +66,7 @@
         kind: ReplicaSet
         namespace: "{{ env }}"
         label_selectors:
-          - app=podinfo
+          - app=podinfo-edge
       register: replicasets
 
     - name: Rollout failed — rolling back Podinfo edge to previous version
