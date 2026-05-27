@@ -24,4 +24,5 @@
       validate_certs: false
       kubeconfig: /var/snap/microk8s/current/credentials/client.config
   roles:
+    - prereqs
     - podinfo_edge

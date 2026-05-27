@@ -50,34 +50,34 @@
                   periodSeconds: 10
                   failureThreshold: 3
 
-- name: Wait for Podinfo rollout — auto-rollback on failure
-  block:
-    - name: Wait for Podinfo rollout to complete
-      kubernetes.core.k8s_rollout_status:
-        name: podinfo
-        namespace: "podinfo-{{ env }}"
-        kind: Deployment
-        timeout: 120
-  rescue:
-    - name: Check rollout history
-      kubernetes.core.k8s_info:
-        kind: ReplicaSet
-        namespace: "podinfo-{{ env }}"
-        label_selectors:
-          - app=podinfo
-      register: replicasets
+# - name: Wait for Podinfo rollout — auto-rollback on failure
+#   block:
+#     - name: Wait for Podinfo rollout to complete
+#       kubernetes.core.k8s_rollout_status:
+#         name: podinfo
+#         namespace: "podinfo-{{ env }}"
+#         kind: Deployment
+#         timeout: 120
+#   rescue:
+#     - name: Check rollout history
+#       kubernetes.core.k8s_info:
+#         kind: ReplicaSet
+#         namespace: "podinfo-{{ env }}"
+#         label_selectors:
+#           - app=podinfo
+#       register: replicasets
 
-    - name: Rollout failed — rolling back Podinfo to previous version
-      kubernetes.core.k8s_rollout:
-        name: podinfo
-        namespace: "podinfo-{{ env }}"
-        kind: Deployment
-        action: undo
-      when: replicasets.resources | length > 1
+#     - name: Rollout failed — rolling back Podinfo to previous version
+#       kubernetes.core.k8s_rollout:
+#         name: podinfo
+#         namespace: "podinfo-{{ env }}"
+#         kind: Deployment
+#         action: undo
+#       when: replicasets.resources | length > 1
 
-    - name: Fail the play after rollback
-      ansible.builtin.fail:
-        msg: "{{ 'Podinfo rollout failed. Automatic rollback triggered.' if replicasets.resources | length > 1 else 'Podinfo rollout failed on first deploy. No previous version to roll back to — manual intervention required.' }}"
+#     - name: Fail the play after rollback
+#       ansible.builtin.fail:
+#         msg: "{{ 'Podinfo rollout failed. Automatic rollback triggered.' if replicasets.resources | length > 1 else 'Podinfo rollout failed on first deploy. No previous version to roll back to — manual intervention required.' }}"
 
 - name: Deploy Podinfo Service (ClusterIP — not exposed externally)
   kubernetes.core.k8s:

@@ -215,7 +215,7 @@ After Keycloak is running, configure it via the admin UI:
 echo "127.0.0.1  keycloak.localhost podinfo.localhost" | sudo tee -a /etc/hosts
 
 # Wait for Keycloak to be ready
-kubectl wait --for=condition=ready pod -l app=keycloak -n keycloak --timeout=120s
+kubectl wait --for=condition=ready pod -l app=keycloak -n keycloak-{ENV} --timeout=120s
 
 # Open in browser
 open http://keycloak.localhost
