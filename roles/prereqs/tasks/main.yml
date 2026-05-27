@@ -1,0 +1,42 @@
+- name: Install MicroK8s via snap
+  community.general.snap:
+    name: microk8s
+    classic: true
+    state: present
+
+- name: Add user to microk8s group
+  ansible.builtin.user:
+    name: "{{ ansible_user }}"
+    groups: microk8s
+    append: true
+
+- name: Create .kube directory
+  ansible.builtin.file:
+    path: "/home/{{ ansible_user }}/.kube"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0755"
+
+- name: Ensure ownership of .kube directory
+  ansible.builtin.file:
+    path: "/home/{{ ansible_user }}/.kube"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    recurse: true
+
+- name: Install pip
+  ansible.builtin.apt:
+    name: python3-pip
+    state: present
+    update_cache: true
+  become: true
+
+- name: Install Python packages
+  ansible.builtin.pip:
+    name:
+      - pyyaml
+      - kubernetes
+      - jsonpatch
+    executable: pip3
+    extra_args: --break-system-packages
