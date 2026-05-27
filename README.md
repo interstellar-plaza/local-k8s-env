@@ -102,31 +102,17 @@ kubectl get no
 # Launch the VM and check VM is running
 multipass launch --name edge-server --cpus 2 --memory 4G --disk 20G
 
+# From macOS — confirm you can reach it
+multipass list
+
 # Make sure that terminal you are using Terminal.app, iTerm, Warp, etc.) is not blocked from local network access by macOS.
 # Open System Settings, Go to Privacy & Security → Local Network and check if your terminal toggle is ON
 multipass shell edge-server
 
 # --- Inside the VM ---
-sudo snap install microk8s --classic
-sudo usermod -aG microk8s ubuntu
-mkdir ~/.kube
-sudo chown -R ubuntu ~/.kube
-newgrp microk8s
-sudo apt install python3-pip -y
-pip3 install pyyaml kubernetes jsonpatch --break-system-packages
-
-microk8s status --wait-ready
-microk8s enable dns storage ingress # It deploys CoreDNS, basic NGINX ingress controller inside the cluster and configures local storageClass to allow PersistentVolumeClaim requests
-
 # Get the VM's IP (you'll need it for Ansible inventory)
 hostname -I
-# Exit the VM
 exit
-```
-
-```bash
-# From macOS — confirm you can reach it
-multipass list
 ```
 
 ---
@@ -191,12 +177,19 @@ ansible-galaxy collection install kubernetes.core community.general
 # Deploy release 1.0.0 to dev
 ansible-playbook deploy.yml -i inventories/dev -e @releases/release-1.0.0.yml
 
+multipass shell edge-server
+# --- Inside the edge server VM ---
+microk8s status --wait-ready
+microk8s enable dns storage ingress # It deploys CoreDNS, basic NGINX ingress controller inside the cluster and configures local storageClass to allow PersistentVolumeClaim requests
+
 # Confirm Podinfo version on main cluster
 kubectl get po -n podinfo-{ENV}
 kubectl exec -n podinfo-{ENV} deploy/podinfo -- wget -qO- http://localhost:9898/version
 
+echo "<EDGE-SERVER-IP>  edge-server.local | sudo tee -a /etc/hosts
+
 # Confirm Podinfo on edge
-curl http://<EDGE-SERVER-IP>:30099/version
+curl http://edge-server.local:30099/version
 ...
 {
   "commit": "b501abd1f0f2acf49c39f2d9cd47b460578d87f0",
@@ -292,8 +285,7 @@ brew install stern
 stern ".*" --all-namespaces
 
 # --- Edge Server ---
-ssh ubuntu@<EDGE-SERVER-IP> \
-  "microk8s kubectl logs deploy/podinfo-edge -n {ENV} -f"
+ssh ubuntu@edge-server.local "microk8s kubectl logs deploy/podinfo-edge -n {ENV} -f"
 ```
 
 > **Reasoning:** For this sample exercise, kubectl logs is sufficient — it's built-in, requires no extra tooling, and gives real-time output. In production I would add a Loki + Grafana stack (lightweight) or ship logs to a managed service like Datadog, NewRelic or AWS CloudWatch, since kubectl logs are lost when pods are replaced.
@@ -340,7 +332,7 @@ kubectl get svc -A | grep -v ClusterIP
 kubectl exec -n podinfo-{ENV} deploy/podinfo -- wget -qO- http://localhost:9898/version | python3 -m json.tool
 
 # 4. Edge is reachable from host (proxy for main cluster connectivity)
-curl http://<EDGE-SERVER-IP>:30099/version
+curl http://edge-server.local:30099/version
 
 # 5. Auth is working (expect 401 without token)
 curl -v http://podinfo.localhost/version
