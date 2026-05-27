@@ -78,7 +78,7 @@
 
     - name: Fail the play after rollback
       ansible.builtin.fail:
-        msg: "{{ 'Podinfo rollout failed. Automatic rollback triggered.' if replicasets.stdout_lines | length > 1 else 'Podinfo rollout failed on first deploy. No previous version to roll back to — manual intervention required.' }}"
+        msg: "{{ 'Podinfo-edge rollout failed. Automatic rollback triggered.' if replicasets.stdout_lines | length > 1 else 'Podinfo rollout failed on first deploy. No previous version to roll back to — manual intervention required.' }}"
 
 - name: Expose Podinfo on edge via NodePort
   kubernetes.core.k8s:

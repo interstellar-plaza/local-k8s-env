@@ -50,27 +50,27 @@
                   periodSeconds: 10
                   failureThreshold: 3
 
-- name: Wait for Podinfo edge rollout — auto-rollback on failure
+- name: Wait for Podinfo rollout — auto-rollback on failure
   block:
-    - name: Wait for Podinfo edge rollout to complete
+    - name: Wait for Podinfo rollout to complete
       ansible.builtin.command: >
-        microk8s kubectl rollout status deployment/podinfo
+        kubectl rollout status deployment/podinfo
         --namespace=podinfo-{{ env }}
         --timeout=120s
       changed_when: false
   rescue:
     - name: Check rollout history
       ansible.builtin.command: >
-        microk8s kubectl get replicasets
+        kubectl get replicasets
         --namespace=podinfo-{{ env }}
         --selector=podinfo
         --no-headers
       register: replicasets
       changed_when: false
 
-    - name: Rollout failed — rolling back Podinfo edge to previous version
+    - name: Rollout failed — rolling back Podinfo to previous version
       ansible.builtin.command: >
-        microk8s kubectl rollout undo deployment/podinfo
+        kubectl rollout undo deployment/podinfo
         --namespace=podinfo-{{ env }}
       when: replicasets.stdout_lines | length > 1
       changed_when: true
